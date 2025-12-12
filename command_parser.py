@@ -37,6 +37,21 @@ def parse_commands(response_text: str) -> tuple[str, list[AgentCommand]]:
         !mute_self - Skip this AI's next turn
     """
     commands = []
+
+    # Normalize response_text so regex operations don't fail on structured content
+    if isinstance(response_text, list):
+        # Pull out any text content from message parts (e.g., OpenAI content lists)
+        text_parts = []
+        for part in response_text:
+            if isinstance(part, dict) and part.get("type") == "text":
+                text_parts.append(part.get("text", ""))
+        response_text = " ".join(text_parts)
+    elif response_text is None:
+        response_text = ""
+    elif not isinstance(response_text, str):
+        # Fallback for unexpected content types
+        response_text = str(response_text)
+
     cleaned = response_text
     
     # Define patterns for each command type
