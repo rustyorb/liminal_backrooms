@@ -60,7 +60,7 @@ While great for AI shitposting, this is easy to customize for interesting experi
 
 ## Prerequisites
 
-- Python 3.10 or higher (but lower than 3.12)
+- Python 3.10 - 3.12
 - Poetry for dependency management
 - Windows 10/11 or Linux (tested on Ubuntu 20.04+)
 
@@ -164,6 +164,16 @@ SORA_SIZE=1280x720     # resolution
 3. Empty Responses:
    - Some models occasionally return empty - the app will retry once automatically
    - Check OpenRouter status if persistent
+
+## Testing
+
+The project currently includes minimal automated tests. To run the available suite (if present) from the repository root:
+
+```bash
+pytest -q
+```
+
+If no tests are collected, ensure you still run the command before submitting changes to confirm the environment is healthy.
 
 ## Contributing
 
