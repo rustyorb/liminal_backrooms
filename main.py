@@ -6,6 +6,7 @@ import threading
 import json
 import sys
 import re
+from typing import Optional
 from dotenv import load_dotenv
 from PyQt6.QtWidgets import QApplication, QMessageBox
 from PyQt6.QtCore import QThread, pyqtSignal, QObject, QRunnable, pyqtSlot, QThreadPool
@@ -851,8 +852,13 @@ class ConversationManager:
                 continue
             
             model = self.get_model_for_ai(i)
-            prompt = SYSTEM_PROMPT_PAIRS[selected_prompt_pair][ai_name]
-            
+            base_prompt = SYSTEM_PROMPT_PAIRS[selected_prompt_pair][ai_name]
+            persona_text = self.get_persona_for_ai(i)
+            if persona_text:
+                prompt = f"{base_prompt}\n\nPersona profile: {persona_text}"
+            else:
+                prompt = base_prompt
+
             worker = Worker(ai_name, self.app.main_conversation, model, prompt, gui=self.app)
             worker.signals.response.connect(self.on_ai_response_received)
             worker.signals.result.connect(self.on_ai_result_received)
@@ -1204,6 +1210,19 @@ class ConversationManager:
             ai_1_prompt = SYSTEM_PROMPT_PAIRS[selected_prompt_pair]["AI-1"]
             ai_2_prompt = SYSTEM_PROMPT_PAIRS[selected_prompt_pair]["AI-2"]
             ai_3_prompt = SYSTEM_PROMPT_PAIRS[selected_prompt_pair]["AI-3"]
+
+        # Apply persona overlays if any are selected
+        ai_personas = {
+            1: self.get_persona_for_ai(1),
+            2: self.get_persona_for_ai(2),
+            3: self.get_persona_for_ai(3),
+        }
+        if ai_personas[1]:
+            ai_1_prompt = f"{ai_1_prompt}\n\nPersona profile: {ai_personas[1]}"
+        if ai_personas[2]:
+            ai_2_prompt = f"{ai_2_prompt}\n\nPersona profile: {ai_personas[2]}"
+        if ai_personas[3]:
+            ai_3_prompt = f"{ai_3_prompt}\n\nPersona profile: {ai_personas[3]}"
         
         # Start loading animation
         self.app.left_pane.start_loading()
@@ -1887,6 +1906,25 @@ class ConversationManager:
             5: self.app.right_sidebar.control_panel.ai5_model_selector
         }
         return selectors.get(ai_number, selectors[1]).currentText()
+
+    def get_persona_for_ai(self, ai_number: int) -> Optional[str]:
+        """Return the persona description selected for an AI (if any)"""
+        selectors = {
+            1: self.app.right_sidebar.control_panel.ai1_persona_selector,
+            2: self.app.right_sidebar.control_panel.ai2_persona_selector,
+            3: self.app.right_sidebar.control_panel.ai3_persona_selector,
+            4: self.app.right_sidebar.control_panel.ai4_persona_selector,
+            5: self.app.right_sidebar.control_panel.ai5_persona_selector,
+        }
+        selector = selectors.get(ai_number)
+        if not selector:
+            return None
+
+        choice = selector.currentText()
+        if not choice or choice == "Use scenario prompt":
+            return None
+
+        return self.app.right_sidebar.control_panel.personas.get(choice)
     
     def on_ai_error(self, error_message):
         """Handle AI errors for both main and branch conversations"""

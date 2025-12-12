@@ -1736,10 +1736,13 @@ class ControlPanel(QWidget):
     """Control panel with mode, model selections, etc."""
     def __init__(self):
         super().__init__()
-        
+
+        # Load personas before building UI so selectors have data
+        self.personas = self.load_personas()
+
         # Set up the UI
         self.setup_ui()
-        
+
         # Initialize with models and prompt pairs
         self.initialize_selectors()
     
@@ -1853,6 +1856,47 @@ class ControlPanel(QWidget):
         self.num_ais_selector.setStyleSheet(self.get_combobox_style())
         num_ais_layout.addWidget(self.num_ais_selector)
         controls_layout.addWidget(num_ais_container)
+
+        # Persona management
+        persona_container = QWidget()
+        persona_layout = QVBoxLayout(persona_container)
+        persona_layout.setContentsMargins(0, 0, 0, 0)
+        persona_layout.setSpacing(5)
+
+        persona_label = QLabel("▸ PERSONAS")
+        persona_label.setStyleSheet(f"color: {COLORS['text_glow']}; font-size: 10px; font-weight: bold; letter-spacing: 1px;")
+        persona_layout.addWidget(persona_label)
+
+        self.persona_selector = QComboBox()
+        self.persona_selector.setStyleSheet(self.get_combobox_style())
+        self.persona_selector.addItems(["Create new..."] + sorted(self.personas.keys()))
+        self.persona_selector.currentTextChanged.connect(self.on_persona_selected)
+        persona_layout.addWidget(self.persona_selector)
+
+        self.persona_name_input = QLineEdit()
+        self.persona_name_input.setPlaceholderText("Persona name")
+        self.persona_name_input.setStyleSheet(self.get_lineedit_style())
+        persona_layout.addWidget(self.persona_name_input)
+
+        self.persona_text_edit = QTextEdit()
+        self.persona_text_edit.setPlaceholderText("Describe the voice, tone, and constraints for this persona.")
+        self.persona_text_edit.setStyleSheet(self.get_textedit_style())
+        self.persona_text_edit.setFixedHeight(80)
+        persona_layout.addWidget(self.persona_text_edit)
+
+        persona_buttons = QHBoxLayout()
+        persona_buttons.setContentsMargins(0, 0, 0, 0)
+
+        self.save_persona_button = self.create_glow_button("💾 Save Persona", COLORS['accent_cyan'])
+        self.save_persona_button.clicked.connect(self.save_persona)
+        persona_buttons.addWidget(self.save_persona_button)
+
+        self.reset_persona_button = self.create_glow_button("🧹 Clear", COLORS['accent_purple'])
+        self.reset_persona_button.clicked.connect(self.reset_persona_form)
+        persona_buttons.addWidget(self.reset_persona_button)
+
+        persona_layout.addLayout(persona_buttons)
+        controls_layout.addWidget(persona_container)
         
         # AI-1 Model selection
         self.ai1_container = QWidget()
@@ -1863,10 +1907,14 @@ class ControlPanel(QWidget):
         ai1_label = QLabel("AI-1")
         ai1_label.setStyleSheet(f"color: {COLORS['text_dim']}; font-size: 10px;")
         ai1_layout.addWidget(ai1_label)
-        
+
         self.ai1_model_selector = QComboBox()
         self.ai1_model_selector.setStyleSheet(self.get_combobox_style())
         ai1_layout.addWidget(self.ai1_model_selector)
+
+        self.ai1_persona_selector = QComboBox()
+        self.ai1_persona_selector.setStyleSheet(self.get_combobox_style())
+        ai1_layout.addWidget(self.ai1_persona_selector)
         controls_layout.addWidget(self.ai1_container)
         
         # AI-2 Model selection
@@ -1878,10 +1926,14 @@ class ControlPanel(QWidget):
         ai2_label = QLabel("AI-2")
         ai2_label.setStyleSheet(f"color: {COLORS['text_dim']}; font-size: 10px;")
         ai2_layout.addWidget(ai2_label)
-        
+
         self.ai2_model_selector = QComboBox()
         self.ai2_model_selector.setStyleSheet(self.get_combobox_style())
         ai2_layout.addWidget(self.ai2_model_selector)
+
+        self.ai2_persona_selector = QComboBox()
+        self.ai2_persona_selector.setStyleSheet(self.get_combobox_style())
+        ai2_layout.addWidget(self.ai2_persona_selector)
         controls_layout.addWidget(self.ai2_container)
         
         # AI-3 Model selection
@@ -1893,10 +1945,14 @@ class ControlPanel(QWidget):
         ai3_label = QLabel("AI-3")
         ai3_label.setStyleSheet(f"color: {COLORS['text_dim']}; font-size: 10px;")
         ai3_layout.addWidget(ai3_label)
-        
+
         self.ai3_model_selector = QComboBox()
         self.ai3_model_selector.setStyleSheet(self.get_combobox_style())
         ai3_layout.addWidget(self.ai3_model_selector)
+
+        self.ai3_persona_selector = QComboBox()
+        self.ai3_persona_selector.setStyleSheet(self.get_combobox_style())
+        ai3_layout.addWidget(self.ai3_persona_selector)
         controls_layout.addWidget(self.ai3_container)
         
         # AI-4 Model selection
@@ -1908,10 +1964,14 @@ class ControlPanel(QWidget):
         ai4_label = QLabel("AI-4")
         ai4_label.setStyleSheet(f"color: {COLORS['text_dim']}; font-size: 10px;")
         ai4_layout.addWidget(ai4_label)
-        
+
         self.ai4_model_selector = QComboBox()
         self.ai4_model_selector.setStyleSheet(self.get_combobox_style())
         ai4_layout.addWidget(self.ai4_model_selector)
+
+        self.ai4_persona_selector = QComboBox()
+        self.ai4_persona_selector.setStyleSheet(self.get_combobox_style())
+        ai4_layout.addWidget(self.ai4_persona_selector)
         controls_layout.addWidget(self.ai4_container)
         
         # AI-5 Model selection
@@ -1923,10 +1983,14 @@ class ControlPanel(QWidget):
         ai5_label = QLabel("AI-5")
         ai5_label.setStyleSheet(f"color: {COLORS['text_dim']}; font-size: 10px;")
         ai5_layout.addWidget(ai5_label)
-        
+
         self.ai5_model_selector = QComboBox()
         self.ai5_model_selector.setStyleSheet(self.get_combobox_style())
         ai5_layout.addWidget(self.ai5_model_selector)
+
+        self.ai5_persona_selector = QComboBox()
+        self.ai5_persona_selector.setStyleSheet(self.get_combobox_style())
+        ai5_layout.addWidget(self.ai5_persona_selector)
         controls_layout.addWidget(self.ai5_container)
         
         # Prompt pair selection
@@ -2123,7 +2187,41 @@ class ControlPanel(QWidget):
         button = GlowButton(text, accent_color)
         button.setStyleSheet(self.get_cyberpunk_button_style(accent_color))
         return button
-    
+
+    def get_lineedit_style(self):
+        """Shared styling for line edits"""
+        return f"""
+            QLineEdit {{
+                background-color: {COLORS['bg_medium']};
+                color: {COLORS['text_normal']};
+                border: 1px solid {COLORS['border_glow']};
+                border-radius: 0px;
+                padding: 8px 10px;
+                font-size: 10px;
+            }}
+            QLineEdit:focus {{
+                border: 1px solid {COLORS['accent_cyan']};
+                color: {COLORS['text_bright']};
+            }}
+        """
+
+    def get_textedit_style(self):
+        """Shared styling for text edits"""
+        return f"""
+            QTextEdit {{
+                background-color: {COLORS['bg_medium']};
+                color: {COLORS['text_normal']};
+                border: 1px solid {COLORS['border_glow']};
+                border-radius: 0px;
+                padding: 8px 10px;
+                font-size: 10px;
+            }}
+            QTextEdit:focus {{
+                border: 1px solid {COLORS['accent_cyan']};
+                color: {COLORS['text_bright']};
+            }}
+        """
+
     def initialize_selectors(self):
         """Initialize the selector dropdowns with values from config"""
         # Add AI models
@@ -2132,22 +2230,54 @@ class ControlPanel(QWidget):
         self.ai3_model_selector.clear()
         self.ai4_model_selector.clear()
         self.ai5_model_selector.clear()
-        self.ai1_model_selector.addItems(list(AI_MODELS.keys()))
-        self.ai2_model_selector.addItems(list(AI_MODELS.keys()))
-        self.ai3_model_selector.addItems(list(AI_MODELS.keys()))
-        self.ai4_model_selector.addItems(list(AI_MODELS.keys()))
-        self.ai5_model_selector.addItems(list(AI_MODELS.keys()))
-        
+        model_names = sorted(AI_MODELS.keys(), key=lambda x: x.lower())
+        self.ai1_model_selector.addItems(model_names)
+        self.ai2_model_selector.addItems(model_names)
+        self.ai3_model_selector.addItems(model_names)
+        self.ai4_model_selector.addItems(model_names)
+        self.ai5_model_selector.addItems(model_names)
+
         # Add prompt pairs
         self.prompt_pair_selector.clear()
         self.prompt_pair_selector.addItems(list(SYSTEM_PROMPT_PAIRS.keys()))
-        
+
+        # Persona selectors
+        self.update_persona_selectors()
+
         # Connect number of AIs selector to update visibility
         self.num_ais_selector.currentTextChanged.connect(self.update_ai_selector_visibility)
-        
+
         # Set initial visibility based on default number of AIs (3)
         self.update_ai_selector_visibility("3")
-    
+
+    def update_persona_selectors(self):
+        """Refresh persona dropdowns after edits"""
+        persona_options = ["Use scenario prompt"] + sorted(self.personas.keys())
+        targets = [
+            self.ai1_persona_selector,
+            self.ai2_persona_selector,
+            self.ai3_persona_selector,
+            self.ai4_persona_selector,
+            self.ai5_persona_selector,
+        ]
+        for selector in targets:
+            current = selector.currentText()
+            selector.blockSignals(True)
+            selector.clear()
+            selector.addItems(persona_options)
+            if current in persona_options:
+                selector.setCurrentText(current)
+            selector.blockSignals(False)
+
+        # Keep editor dropdown in sync
+        current_editor_choice = self.persona_selector.currentText()
+        self.persona_selector.blockSignals(True)
+        self.persona_selector.clear()
+        self.persona_selector.addItems(["Create new..."] + sorted(self.personas.keys()))
+        if current_editor_choice in self.personas:
+            self.persona_selector.setCurrentText(current_editor_choice)
+        self.persona_selector.blockSignals(False)
+
     def update_ai_selector_visibility(self, num_ais_text):
         """Show/hide AI model selectors based on number of AIs selected"""
         num_ais = int(num_ais_text)
@@ -2163,6 +2293,78 @@ class ControlPanel(QWidget):
         self.ai3_container.setVisible(num_ais >= 3)
         self.ai4_container.setVisible(num_ais >= 4)
         self.ai5_container.setVisible(num_ais >= 5)
+
+    def load_personas(self):
+        """Load saved personas from disk or provide defaults"""
+        settings_path = Path("settings")
+        settings_path.mkdir(exist_ok=True)
+        personas_file = settings_path / "personas.json"
+
+        default_personas = {
+            "Archivist": "Speak with precise, clipped clarity. You prioritize citations, structure, and factual grounding over speculation.",
+            "Troublemaker": "A playful contrarian who challenges assumptions, asks provocative questions, and keeps answers concise but punchy.",
+            "Zen Guide": "Calm, empathetic, and metaphorical. Use gentle imagery and keep the conversation grounded in mindfulness.",
+        }
+
+        if personas_file.exists():
+            try:
+                with personas_file.open("r", encoding="utf-8") as f:
+                    loaded = json.load(f)
+                    if isinstance(loaded, dict):
+                        return loaded
+            except Exception as exc:
+                print(f"Failed to load personas.json: {exc}")
+
+        # Persist defaults for future launches
+        try:
+            with personas_file.open("w", encoding="utf-8") as f:
+                json.dump(default_personas, f, indent=2)
+        except Exception as exc:
+            print(f"Failed to save default personas: {exc}")
+
+        return default_personas
+
+    def save_personas(self):
+        """Persist persona definitions to disk"""
+        personas_file = Path("settings/personas.json")
+        try:
+            personas_file.parent.mkdir(exist_ok=True)
+            with personas_file.open("w", encoding="utf-8") as f:
+                json.dump(self.personas, f, indent=2)
+        except Exception as exc:
+            print(f"Failed to save personas: {exc}")
+
+    def on_persona_selected(self, name):
+        """Populate the editor when an existing persona is chosen"""
+        if name == "Create new...":
+            self.reset_persona_form()
+            return
+
+        persona_text = self.personas.get(name, "")
+        self.persona_name_input.setText(name)
+        self.persona_text_edit.setPlainText(persona_text)
+
+    def reset_persona_form(self):
+        """Clear persona editor fields"""
+        self.persona_selector.blockSignals(True)
+        self.persona_selector.setCurrentText("Create new...")
+        self.persona_selector.blockSignals(False)
+        self.persona_name_input.clear()
+        self.persona_text_edit.clear()
+
+    def save_persona(self):
+        """Create or update a persona definition"""
+        name = self.persona_name_input.text().strip()
+        description = self.persona_text_edit.toPlainText().strip()
+
+        if not name or not description:
+            QMessageBox.warning(self, "Persona", "Please provide both a name and description.")
+            return
+
+        self.personas[name] = description
+        self.save_personas()
+        self.update_persona_selectors()
+        self.persona_selector.setCurrentText(name)
 
 class ConversationContextMenu(QMenu):
     """Context menu for the conversation display"""
